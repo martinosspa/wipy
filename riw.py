@@ -19,11 +19,8 @@ def request_item(item_name, order_type):
 
     for buyer in buyers:
         prices.append(buyer["platinum"])
-
     if not prices:
-        return None
-
-
+        return {"isEmpty": True}
     else:
         if order_type == "buy":
             price = max(prices)
@@ -34,7 +31,7 @@ def request_item(item_name, order_type):
             if buyer["platinum"] == price:
                 buyer_name = buyer["user"]["ingame_name"]
                 buyer_region = buyer["region"]
-        return {"price":price, "name":buyer_name, "region":buyer_region}
+        return {"isEmpty": False, "price":price, "name":buyer_name, "region":buyer_region}
 
 def request_mod(mod_name, order_type, mod_rank):
     html = urlopen("https://api.warframe.market/v1/items/{}/orders".format(mod_name))
@@ -54,7 +51,7 @@ def request_mod(mod_name, order_type, mod_rank):
         prices.append(buyer["platinum"])
 
     if not prices:
-        return None
+        return {"isEmpty": True}
     else:
         if order_type == "buy":
             price = max(prices)
@@ -64,7 +61,7 @@ def request_mod(mod_name, order_type, mod_rank):
             if buyer["platinum"] == price:
                 buyer_name = buyer["user"]["ingame_name"]
                 buyer_region = buyer["region"]
-        return {"price":price, "name":buyer_name, "region":buyer_region}
+        return {"isEmpty": False, "price":price, "name":buyer_name, "region":buyer_region}
 
 def request_item_info(item_name):
     html = urlopen("https://api.warframe.market/v1/items/{}".format(item_name))
@@ -93,4 +90,5 @@ def getSet(item_name):
     item_info = request_item_info(item_name)
     for item in item_info:
         if "set" in item["tags"]:
-            return item
+            return item["url_name"]
+    return None

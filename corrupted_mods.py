@@ -8,18 +8,14 @@ def main():
     fixed_items = list(map(lambda string: string.lower().replace(" ", "_"), items))
     for item in fixed_items:
         info = riw.request_mod(item, "buy", 0)
-        if not info:
+        if info["isEmpty"]:
             print("no buyer for {}".format(item))
         else:
-            price = info[0]
-            buyer_name = info[1]
+            price = info["price"]
+            buyer_name = info["name"]
             print("{} buys {} for {} platinum".format(buyer_name, item, price))
 
 
 if __name__ == "__main__":
     main()
     input("Press any key to exit...")
-    
-
-
-
