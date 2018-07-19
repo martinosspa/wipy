@@ -31,7 +31,10 @@ def request_item(item_name, order_type):
             if buyer["platinum"] == price:
                 buyer_name = buyer["user"]["ingame_name"]
                 buyer_region = buyer["region"]
-        return {"isEmpty": False, "price":price, "name":buyer_name, "region":buyer_region}
+        return {"isEmpty": False, 
+                "price":price, 
+                "name":buyer_name, 
+                "region":buyer_region}
 
 def request_mod(mod_name, order_type, mod_rank):
     html = urlopen("https://api.warframe.market/v1/items/{}/orders".format(mod_name))

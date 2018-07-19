@@ -1,6 +1,6 @@
 import riw
 def main():
-    items = ["Blind_Rage", "Fleeting_Expertise", "Narrow_Minded", "Overextended", "Transient_Fortitude",
+    items = ["Blind Rage", "Fleeting_Expertise", "Narrow_Minded", "Overextended", "Transient_Fortitude",
              "Critical Delay", "Heavy Caliber", "Vile Precision", "Tainted Mag", "Vile Acceleration", "Depleted Reload",
              "Burdened Magazine",
              "Vicious Spread", "Tainted Shell", "Frail Momentum", "Critical Deceleration", "Anemic Agility",
@@ -18,4 +18,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    input("Press any key to exit...")
