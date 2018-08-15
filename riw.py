@@ -1,4 +1,4 @@
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 import json
 def request_all_items(isShort=False):
     if isShort:
@@ -7,8 +7,9 @@ def request_all_items(isShort=False):
         return json.loads(urlopen("https://api.warframe.market/v1/items").read())
 
 def request_item(item_name, order_type):
-    html = urlopen("https://api.warframe.market/v1/items/{}/orders".format(item_name))
-    data = json.loads(html.read())
+    req = Request("https://api.warframe.market/v1/items/{}/orders".format(item_name), headers={'User-Agent': 'Mozilla/5.0'})
+    html = urlopen(req).read()
+    data = json.loads(html)
     buyers = []
     prices = []
     buyer_name = ""
@@ -95,3 +96,12 @@ def getSet(item_name):
         if "set" in item["tags"]:
             return item["url_name"]
     return None
+
+def item_exists(item_name):
+    try:
+        html = urlopen("https://api.warframe.market/v1/items/{}".format(item_name))
+        data = json.loads(html.read())
+    except :
+        return False
+    else:
+        return True
