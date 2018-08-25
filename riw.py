@@ -1,11 +1,12 @@
 from urllib.request import urlopen, Request
 import json
+
 def request_all_items(isShort=False):
     if isShort:
         return json.loads(urlopen("https://api.warframe.market/v1/items").read())["payload"]["items"]["en"]
     else:
         return json.loads(urlopen("https://api.warframe.market/v1/items").read())
-
+all_items = request_all_items(isShort=True)
 def request_item(item_name, order_type):
     req = Request("https://api.warframe.market/v1/items/{}/orders".format(item_name), headers={'User-Agent': 'Mozilla/5.0'})
     html = urlopen(req).read()

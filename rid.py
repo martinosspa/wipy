@@ -3,14 +3,13 @@ import json
 import riw
 from pprint import pprint
 import time
-# 1. get location of a given relic
-# 2. get BEST location for a given relic
-# 3.
+
 def encode(string):
-	if riw.item_exists(string):
-		return string.lower().replace(' ', '_').replace('&', 'and')
-	else:
-		return string.lower().replace(' ', '_').replace('&', 'and').replace('_blueprint', '')
+	for item in riw.all_items:
+		if item['item_name'] == string:
+			return item['url_name']
+	return string.lower().replace(' ', '_').replace('&', 'and').replace('_blueprint', '')
+		
 def decode(string):
 	return string.title().replace('_', ' ').replace('and', '&')
 
@@ -20,7 +19,8 @@ class Mission:
 		self.planet_name = planet_name
 
 		self.mission_type = ''
-		self.rewards = {}
+		self.rewards = []
+		print('{} {} loaded')
 	def load(self):
 		self.data = get_data('/missionRewards/{}/{}.json'.format(self.planet_name.capitalize(), self.name.capitalize()))
 		self.rotations = self.data['rewards']
@@ -33,12 +33,15 @@ class Mission:
 					self.split_name = reward['itemName'].split(' ') 
 					if 'Relic' in self.split_name:
 						self.rewards.append(Relic(self.split_name[0], self.split_name[1], reward['chance']))
-						pass
+						
 		else:
 			for reward in self.rotations:
 				self.split_name = reward['itemName'].split(' ')
 				if 'Relic' in self.split_name:
 					self.rewards.append(Relic(self.split_name[0], self.split_name[1], reward['chance']))
+	def get_prices(self):
+		for relic in self.rewards:
+			relic.get_price()
 	def save(self):
 		self.all_json_data = {'name': self.name,
 							  'mission_type': self.mission_type,
@@ -47,25 +50,27 @@ class Mission:
 		with open('{}_{}.json'.format(self.planet_name, self.name), 'w') as file:
 			json.dump(self.all_json_data, file)
 
-
+	def load_prices(self):
+		for reward in self.rewards:
+			reward.get_price
 
 class Mod:
 	def __init__(self, name):
 		self.url_name = encode(name)
 		self.normal_name = decode(name)
-		
+		self.price = 0
 
 	def get_price(self, order_type):
-		print(riw.request_mod(self.url_name, order_type, 0))
+		self.price = riw.request_mod(self.url_name, order_type, 0)['price']
 	
 
 class Blueprint:
 	def __init__(self, name):
 		self.url_name = encode(name)
 		self.normal_name = decode(name)
+		self.price = 0
 	def get_price(self, order_type):
-		if riw.item_exists(self.url_name):
-			print(riw.request_item(self.url_name, order_type))
+		self.price = riw.request_item(self.url_name, order_type)
 
 
 
@@ -75,15 +80,25 @@ class Relic:
 		self.name = relic_name
 		self.info = {}
 		self.data = get_data('/relics/{}/{}.json'.format(self.era, self.name), verbose=False)
-		pprint(self.data)
+		#pprint(self.data)
+		
 		for refinement in self.data['rewards']:
 			self.info[refinement.lower()] = []
 			for reward in self.data['rewards'][refinement]:
-				self.info[refinement.lower()].append(Blueprint(reward['itemName']))
+				self.start_time = time.time()
+				if not reward['itemName'].encode() == 'forma':
+					self.info[refinement.lower()].append(Blueprint(reward['itemName']))
+				self.end_time = time.time()
+				#print(reward['itemName'], self.end_time - self.start_time)
 		self.drop_chance = chance
+		
 
-	def get_prices(self, verbose=False):
-		pass
+	def get_price(self, verbose=False):
+		
+		for refinement in self.info:
+			for reward in self.info[refinement]:
+				#print(reward.url_name)
+				reward.get_price('sell')
 
 
 
@@ -122,10 +137,5 @@ def get_item_relic(item_name):
 
 hydron = Mission('sedna', 'hydron')
 hydron.load()
-hydron.save()
 
-'''
-for reward in hydron.rewards:
-	print(reward.info['intact'][0].url_name)
-	print(reward.info['intact'][0].get_price('sell'))
-''' 
+hydron.get_prices()
