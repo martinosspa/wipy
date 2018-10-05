@@ -88,8 +88,10 @@ class Forma(Reward):
 		self.price = None
 		self.customer = None
 
-	def get_price(self, _):
+	def get_price(self, _, debuf=False):
 		self.price = 10
+		if debug:
+			print('forma')
 
 class PrimePart(Reward):
 	def __init__(self, part_name, drop_chance):
@@ -101,7 +103,7 @@ class PrimePart(Reward):
 		self.price = 0
 
 
-	def get_price(self, order_type, verbose=False):
+	def get_price(self, order_type, debug=False):
 		start_time = time.time()
 		if not (order_type == ORDER_BUY or order_type == ORDER_SELL):
 			raise ValueError('not a valid order type')
@@ -123,7 +125,7 @@ class PrimePart(Reward):
 		self.price = prices[position]
 		customer = customer_info[position]
 		end_time = time.time()
-		if verbose:
+		if debug:
 			print('{} took {} seconds'.format(self.url_name, end_time - start_time))
 
 
@@ -158,14 +160,15 @@ class Relic:
 			print('{} took {} seconds'.format(self.url_name, end_time - start_time))
 
 
-	def get_sell_price(self, relic_tier):
+	def get_sell_price(self, relic_tier, debug=False):
 		'''gets the total sell price of a relic'''
 		if relic_tier not in range(0, 4):
 			raise ValueError('not a valid relic tier')
 		if not self.rewards:
 			raise ValueError('havent loaded rewards')
+		#print(self.rewards)
 		for reward in self.rewards:
-			reward.get_price(ORDER_SELL)
+			reward.get_price(ORDER_SELL, debug=debug)
 			self.total_price += reward.drop_chance / 100 * reward.price
 
 	def parse(self):
@@ -182,39 +185,48 @@ class Relic:
 		return data
 
 class Mission:
-	def __init__(self, mission_planet, mission_name):
+	def __init__(self, mission_planet, mission_name, debug=False):
+		# basic object variables
 		self.planet = mission_planet.capitalize()
 		self.name = mission_name.capitalize()
-		self.rewards = []
 		self.total_sell_price = 0
+		self.game_mode = None
+		self.has_rotations = False
 
-	def load_rewards(self, rotation):
-		if not rotation in MISSION_ROTATIONS:
-			raise ValueError('not a valid mission rotation')
+		# loads rewards from all rotations
 		data = get_drop_data('/missionRewards/{}/{}.json'.format(self.planet.capitalize(),
-																		 self.name.capitalize()))['rewards']
-		if len(data) == 3:
-			# has multiple rotations
-			data = data[rotation]
-			data = list(filter(lambda relic: 'Relic' in relic['itemName'].split(' '), data))
-			
-			for relic in data: 
-				split_name = relic['itemName'].split(' ')
-				self.rewards.append(Relic(split_name[0], split_name[1], relic['chance']))
-		else:
-			# has no rotations
-			print('no rotations')
+																 self.name.capitalize())
+																)
+		self.game_mode = data['gameMode']
 
-	def load_reward_total_sell_price(self, rotation=MISSION_ROTATION_A, relic_tier=RELIC_TIER0):
-		self.load_rewards(rotation)
-		sell_prices = []
-		for relic in self.rewards:
-			relic.get_sell_price(relic_tier)
-			
-			sell_prices.append({'era':relic.era,
-						   'name': relic.name,
-						   'total_price':relic.total_price})
-			self.total_sell_price += relic.drop_chance / 100 * relic.total_price
+		# filters out non-relic rewards
+		filtered_rewards = {}
+		for rotation in data['rewards']:
+			filtered_rewards[rotation] = list(filter(lambda relic: 'Relic' in relic['itemName'].split(' '), data['rewards'][rotation]))
+		
+		# initiates a relic object dictionary
+		self.rewards = {}
+		for rotation in filtered_rewards:
+			self.rewards[rotation] = []
+			for relic in filtered_rewards[rotation]:
+				split_name = relic['itemName'].split(' ')
+				relic_era = split_name[0]
+				relic_name = split_name[1]
+				relic = Relic(relic_era, relic_name, relic['chance'])
+				if debug:
+					print(relic)
+				self.rewards[rotation].append(relic)
+
+	def get_price(self, debug=False, rotation=MISSION_ROTATION_A, relic_tier=RELIC_TIER0, price_type=ORDER_SELL):
+		#returns the average price of the selected rotation/relic tier/order type
+		if rotation not in MISSION_ROTATIONS:
+			raise ValueError('Rotation invalid')
+		price = 0
+		for relic in self.rewards[rotation]:
+			relic.get_sell_price(relic_tier,debug=debug)
+			price += relic.drop_chance / 100 * relic.total_price
+		return price
+
 	def parse(self):
 		data = {}
 		data['planet'] = self.planet
