@@ -1,14 +1,5 @@
 import wilib 
-from pprint import pprint
-mission = wilib.Mission('void', 'mithra', debug=True)
-mission.get_price()
-#mission.load_rewards(wilib.MISSION_ROTATION_A)
-#mission.load_reward_total_sell_price()
-#print(mission.load_reward_total_sell_price)split_name = relic['itemName'].split(' ')
-
-
-
-
-
-
-
+mission = wilib.Mission('sedna', 'hydron', debug=False)
+price_t0 = mission.get_price(relic_tier=wilib.RELIC_TIER0)
+print(price_t0)
+mission.save()
