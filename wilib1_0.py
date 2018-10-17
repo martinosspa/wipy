@@ -26,6 +26,7 @@ ERAS = [ERA_LITH, ERA_MESO, ERA_NEO, ERA_AXI]
 
 ORDER_SELL = 'sell'
 ORDER_BUY = 'buy'
+requests = 0
 
 def get_drop_data(url_extension, verbose=False):
 	url = '{}{}'.format(warframe_drop_data_url, url_extension)
@@ -42,10 +43,7 @@ def get_drop_data(url_extension, verbose=False):
 def get_all_missions():
 	missions = []
 	all_data = get_drop_data('/missionRewards.json')['missionRewards']
-	for planet in all_data:
-		for mission in all_data[planet]:
-			missions.append(Mission(planet, mission))
-	return missions
+	return all_data
 
 def _filter(order):
 	order.pop('creation_date')
@@ -67,6 +65,8 @@ def get_all_items():
 	return data
 
 all_items = get_all_items()
+star_chart = get_drop_data('/missionRewards.json')
+all_relics = get_drop_data('/relics.json')
 
 def encode(string):
 	for item in all_items:
@@ -77,6 +77,19 @@ def encode(string):
 def decode(string):
 	return string.title().replace('_', ' ').replace('and', '&')
 
+def request_orders(url_name):
+	req = Request('{}/{}/orders'.format(warframe_market_api_base_url, url_name))
+	orders = json.loads(urlopen(req).read())['payload']['orders']
+	global requests
+	requests = requests + 1
+	return orders
+
+def find_relic_rewards(relic_era, relic_name):
+	relics = list(filter(lambda relic: relic['tier'] == relic_era and relic['relicName'] == relic_name, all_relics['relics']))
+	return_data = {}
+	for relic in relics:
+		return_data[relic['state']] = relic['rewards']
+	return return_data
 class Reward:
 	def __init__(self, name):
 		self.name = name
@@ -111,9 +124,7 @@ class PrimePart(Reward):
 		start_time = time.time()
 		if not (order_type == ORDER_BUY or order_type == ORDER_SELL):
 			raise ValueError('not a valid order type')
-
-		req = Request('{}/{}/orders'.format(warframe_market_api_base_url, self.url_name))
-		orders = json.loads(urlopen(req).read())['payload']['orders']
+		orders = request_orders(self.url_name)
 		prices, self.customer_info = [], []
 
 		#filters orders
@@ -145,22 +156,20 @@ class Relic:
 		self.url_name = decode(relic_name)
 		self.rewards = {}
 		self.drop_chance = drop_chance
-
+		self.sell_price = {}
 
 		# get relic drop rewards from the api
 		start_time = time.time()
-		raw_data = get_drop_data('/relics/{}/{}.json'.format(self.era.capitalize(),
-																  self.url_name.capitalize()),
-																  verbose=verbose)
-		data = raw_data['rewards']
-		for tier in data:
-			self.rewards[tier] = []
-			for reward in data[tier]:
+		rewards = find_relic_rewards(self.era.capitalize(), self.url_name.capitalize())
+		for relic_tier in rewards:
+			self.rewards[relic_tier] = []
+
+			for reward in rewards[relic_tier]:
 				split_name = reward['itemName'].lower().split(' ')
 				if 'forma' in split_name:
-					self.rewards[tier].append(Forma(reward['chance']))
+					self.rewards[relic_tier].append(Forma(reward['chance']))
 				else:
-					self.rewards[tier].append(PrimePart(reward['itemName'], reward['chance']))
+					self.rewards[relic_tier].append(PrimePart(reward['itemName'], reward['chance']))
 		end_time = time.time()
 		if verbose:
 			print('{} took {} seconds'.format(self.url_name, end_time - start_time))
@@ -174,6 +183,7 @@ class Relic:
 		for reward in self.rewards[relic_tier]:
 			reward.load_price(order_type, debug=debug)
 			average_price += reward.drop_chance / 100 * reward.price
+		self.sell_price[relic_tier] = average_price
 		return average_price
 
 	def parse(self):
@@ -184,10 +194,12 @@ class Relic:
 			for reward in self.rewards[tier]:
 				rewards[tier].append({'name': reward.name,
 								'url_name': reward.url_name,
-								'drop_chance': reward.drop_chance})
+								'drop_chance': reward.drop_chance,
+								'average_sell_price': reward.price})
 		data = {'name': self.name,
 				'era': self.era,
 				'url_name': self.url_name,
+				'average_sell_price': self.sell_price,
 				'relic_tiers': rewards}
 		return data
 
@@ -195,49 +207,79 @@ class Mission:
 	def __init__(self, mission_planet, mission_name, debug=False):
 		# basic object variables
 
-		self.planet = mission_planet.capitalize()
-		self.name = mission_name.capitalize()
+		self.planet = mission_planet.title()
+		self.name = mission_name.title()
 		self.total_sell_price = 0
 		self.game_mode = None
 		self.has_rotations = False
+		self.prices_loaded = False
 		print('initalizing {} {}'.format(self.planet.lower(), self.name.lower()))
 		start_time = time.time()
 
+		# TEMPORARY
 		# loads rewards from all rotations
-		data = get_drop_data('/missionRewards/{}/{}.json'.format(self.planet.capitalize(),
-																 self.name.capitalize())
-																)
+		#print(star_chart['missionRewards'][self.planet])
+		if self.name == 'Stöfler':
+			self.name = 'StöFler'
+		data = star_chart['missionRewards'][self.planet][self.name]
+		
 		self.game_mode = data['gameMode']
 
 		# filters out non-relic rewards
 		filtered_rewards = {}
-		for rotation in data['rewards']:
-			filtered_rewards[rotation] = list(filter(lambda relic: 'Relic' in relic['itemName'].split(' '), data['rewards'][rotation]))
+		if data['rewards'] == dict: 
+			for rotation in data['rewards']:
+				filtered_rewards[rotation] = list(filter(lambda relic: 'Relic' in relic['itemName'].split(' '), data['rewards'][rotation]))
+		else:
+			for rotation in data['rewards']:
+				if filtered_rewards:
+					filtered_rewards[rotation] = list(filter(lambda relic: 'Relic' in relic['itemName'].split(' '), data['rewards'][rotation]))
+				else:
+					print('error')
+					break
 		
 		# initiates a relic object dictionary
 		self.rewards = {}
+
 		for rotation in filtered_rewards:
 			self.rewards[rotation] = []
+			print(rotation)
 			for relic in filtered_rewards[rotation]:
 				split_name = relic['itemName'].split(' ')
 				relic_era = split_name[0]
 				relic_name = split_name[1]
 				relic = Relic(relic_era, relic_name, relic['chance'])
 				self.rewards[rotation].append(relic)
+
 		end_time = time.time()
 		total_time = round(end_time - start_time, 2)
 		print(' done after {}'.format(total_time))
 
-
+	def load_reward_sell_prices(self, relic_tier, reset=True):
+		if not self.prices_loaded:
+			for rotation in self.rewards:
+				for relic in self.rewards[rotation]:
+					relic.get_average_price(ORDER_SELL, relic_tier)
+		else:
+			print('prices already loaded')
+		self.prices_loaded = reset
+		
 	def get_price(self, rotation=MISSION_ROTATION_A, relic_tier=RELIC_TIER0, price_type=ORDER_SELL, debug=False):
 		'''returns the average price of the selected rotation/relic tier/order type'''
 		price = 0
+		if not self.prices_loaded:
+			self.load_reward_sell_prices(relic_tier)
 		if rotation not in MISSION_ROTATIONS:
 			raise ValueError('Rotation invalid')
 		for relic in self.rewards[rotation]:
-			relic_price = relic.get_average_price(price_type, relic_tier, debug=debug)
-			price += relic.drop_chance / 100 * relic_price
+			price += relic.drop_chance / 100 * relic.sell_price[relic_tier]
 		return round(price, 0)
+
+	def load_all_prices(self):
+		self.load_reward_sell_prices(RELIC_TIER0, reset=False)
+		self.load_reward_sell_prices(RELIC_TIER1, reset=False)
+		self.load_reward_sell_prices(RELIC_TIER2, reset=False)
+		self.load_reward_sell_prices(RELIC_TIER3, reset=False)
 
 	def parse(self):
 		data = {}
@@ -252,6 +294,10 @@ class Mission:
 		return data
 
 	def save(self):
-		with open('{}-{}.json'.format(self.planet, self.name), 'w') as file:
+		self.load_all_prices()
+		file_name = 'missions/{}-{}.json'.format(self.planet, self.name)
+		with open(file_name, 'w') as file:
 			data = self.parse()
 			json.dump(data, file)
+			print('saved {}'.format(file_name))
+			
