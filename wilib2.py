@@ -8,6 +8,7 @@ import asyncio
 import threading
 
 _api_base_url = 'https://api.warframe.market/v1/items'
+_drop_url = 'http://drops.warframestat.us'
 
 def _filter_order(order):
 	order.pop('creation_date')
