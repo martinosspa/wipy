@@ -17,10 +17,18 @@ def _filter_planet_missions(planet):
 			planet.pop(mission)
 
 
-def process_planet(planet):
-	print(all_planets[planet])
 
-	
+def process_planet(planet):
+	# filter unwanted reward	
+	planets_copy = dict(all_planets)
+
+	for mission in all_planets[planet]:
+		for rotation in all_planets[planet][mission]['rewards']:
+			_rotation = all_planets[planet][mission]['rewards'][rotation]
+			rewards = list(filter(lambda r: not_intrested_rewards[0] in r['itemName'], _rotation))
+			rewards = list(filter(lambda r: not_intrested_rewards[1] in r['itemName'], _rotation))
+	#with open(f'all-items-json/{planet}.json', 'w') as f:
+	#	json.dump(all_planets[planet], f)	
 
 
 
@@ -32,7 +40,7 @@ async def main():
 		global all_planets
 		all_planets = await resp2.json()
 		all_planets = all_planets['missionRewards']
-
+		all_planets.pop('Sanctuary')
 		# filters missions by gamemode
 		for planet in all_planets:
 			_filter_planet_missions(all_planets[planet])
