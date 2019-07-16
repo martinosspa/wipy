@@ -57,7 +57,7 @@ def _filter_order(order):
 
 def get_all_items():
 	req = Request(warframe_market_api_base_url)
-	data = json.loads(urlopen(req).read())['payload']['items']['en']
+	data = json.loads(urlopen(req).read())['payload']['items']
 	for item in data:
 		item.pop('id')
 	return data

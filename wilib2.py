@@ -118,7 +118,6 @@ async def main():
 
 		htmls = await fetch_all_orders(session, test_item)
 		for item in htmls:
-			pass
 			print(item['item_name'])
 			
 			#with open('all-items-json/{}.json'.format(item['item_name']), 'w+') as f:
