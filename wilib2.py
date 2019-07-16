@@ -80,7 +80,6 @@ async def fetch_stats(session, item_name):
 async def fetch_orders(session, item_name):
 	async with session.get(f'{_api_base_url}/{item_name}/orders') as response:
 		json = await response.json()
-		#print(json)
 		if 'orders' in json['payload']:
 			return {'item_name' : item_name,
 					'orders' : json['payload']['orders']}

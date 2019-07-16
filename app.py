@@ -4,8 +4,30 @@ import aiohttp
 import wilib2
 import threading
 entries = []
-class Entry():
-	def __init__():
+_order_sell = 'sell'
+_order_buy = 'buy'
+class InterfaceEntry():
+	def __init__(self, parent_window, item_name, order_type):
+		self.text = ''
+		self.item_name = item_name
+		self.position = len(entries)+1
+		self.price = None
+		self.order_type = order_type
+		self.parent_window = parent_window
+
+
+	async def fetch(self):
+		async with aiohttp.ClientSession() as session:
+			print(self.item_name)
+			if self.order_type == _order_buy:
+				item = await wilib2.fetch_order_sell_price(session, self.item_name)
+			else:
+				item = await wilib2.fetch_order_buy_price(session, self.item_name)
+
+			self.price = item['price']
+			self.text = f'{self.item_name} {self.order_type} price : {self.price}'
+			self.label = Label(self.parent_window, text=self.text).grid(column=0, row=self.position)
+
 
 
 
@@ -31,7 +53,7 @@ def setup_interface():
 	radiobutton_sell = Radiobutton(window, text='Sell', variable=order_mode, value='sell').grid(column=5, row=0)
 	radiobutton_buy = Radiobutton(window, text='Buy', variable=order_mode, value='buy').grid(column=6, row=0)
 
-
+'''
 async def addEntry():
 	async with aiohttp.ClientSession() as session:
 		entry = entries[-1]
@@ -64,7 +86,7 @@ async def addEntry():
 
 			entries.append((entries[-1][0], 'buy'))
 			entries[-2] = (entries[-1][0], 'sell')
-
+'''
 
 
 '''
@@ -90,15 +112,19 @@ async def updateDisplay():
 '''
 def addLoop():
 	loop = asyncio.new_event_loop()
-	ss = loop.run_until_complete(addEntry())
+	global order_mode
+	if order_mode.get() == 'both':
+
+	else:
+		entry = InterfaceEntry(window, textBox.get(), order_mode.get())
+	ss = loop.run_until_complete(entry.fetch())
+	entries.append(entry)
 	loop.close()
+	textBox.delete(0, END)
 
 def addNewEntry():
-	entries.append((textBox.get(), order_mode.get()))
-
 	s = threading.Thread(target=addLoop)
 	s.start()
-	textBox.delete(0, END) # clear entry box 
 
 
 
