@@ -10,6 +10,14 @@ import threading
 _api_base_url = 'https://api.warframe.market/v1/items'
 _drop_url = 'http://drops.warframestat.us'
 
+_relic_tier0 = 0
+_relic_tier1 = 1
+_relic_tier2 = 2
+_relic_tier3 = 3
+
+
+
+
 def _filter_order(order):
 	order.pop('creation_date')
 	order.pop('id')
@@ -34,6 +42,11 @@ def filter_order(orders, _type='sell'):
 
 
 
+async def fetch_drop_data(session, endpoint):
+	async with session.get(f'{_drop_url}/data/{endpoint}') as resp:
+		r = await resp.json()
+		return r
+
 
 # GETS MIN BUY PRICE
 async def fetch_order_sell_price(session, item_name):
@@ -50,10 +63,9 @@ async def fetch_order_sell_price(session, item_name):
 	else:
 		pos = None
 		price = 0
-	#pprint(orders)
-	return {'item_name' : item_name,
-			'price' : price}
-
+	return {'price' : price,
+			'customer' : {'name' : orders[pos]['user']['ingame_name'],
+						  'region': orders[pos]['region']}}
 
 # GETS MAX SELL PRICE
 async def fetch_order_buy_price(session, item_name):
@@ -74,6 +86,10 @@ async def fetch_order_buy_price(session, item_name):
 			'user_name' : name,
 			'user_region': region}
 
+async def fetch_info(session, item_name):
+	async with session.get(f'{_api_base_url}/{item_name}') as response:
+		json = await response.json()
+		return json['payload']
 
 async def fetch_stats(session, item_name):
 	async with session.get(f'{_api_base_url}/{item_name}/statistics') as response:
@@ -107,6 +123,11 @@ async def fetch_all_orders(session, item_names):
 
 async def fetch_all_stats(session, item_names):
 	results = await asyncio.gather(*[asyncio.create_task(fetch_stats(session, item_name))
+									for item_name in item_names])
+	return results
+
+async def fetch_all_info(session, item_names):
+	results = await asyncio.gather(*[asyncio.create_task(fetch_info(session, item_name))
 									for item_name in item_names])
 	return results
 
