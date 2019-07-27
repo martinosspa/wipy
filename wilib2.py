@@ -66,9 +66,13 @@ async def fetch_order_buy_price(session, item_name):
 	prices = list(map(lambda order: order['platinum'], orders))
 	pos = np.argmax(prices)
 	price = prices[pos]
+	name = orders[pos]['user']['ingame_name']
+	region = orders[pos]['user']['region']
 	#pprint(orders)
 	return {'item_name' : item_name,
-			'price' : price}
+			'price' : price,
+			'user_name' : name,
+			'user_region': region}
 
 
 async def fetch_stats(session, item_name):

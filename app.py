@@ -20,17 +20,25 @@ class InterfaceEntry():
 	async def fetch(self):
 		async with aiohttp.ClientSession() as session:
 			if self.order_type == _order_buy:
-				item = await wilib2.fetch_order_sell_price(session, self.item_name)
+				self.info = await wilib2.fetch_order_sell_price(session, self.item_name)
 			else:
-				item = await wilib2.fetch_order_buy_price(session, self.item_name)
-			self.price = item['price']
+				self.info = await wilib2.fetch_order_buy_price(session, self.item_name)
+
+			self.price = self.info['price']
 			self.text = f'{self.item_name} {self.order_type} price : {self.price}'
 			self.label = Label(self.parent_window, text=self.text).grid(column=0, row=self.position)
 			self.button = Button(self.parent_window, text='>', cursor='hand2', command=self.create_window).grid(column=1, row=self.position)
 	def create_window(self):
-		self.window = Toplevel(self.parent_window)
+		loop = asyncio.new_event_loop()
+		loop.run_until_complete(self._create_window())
+	async def _create_window(self):
+
+		self.window = Toplevel()
+		self.window.geometry('200x200')
 		self.window.title(self.item_name)
-		msg = Message(self.window, text='aaaaaaaaaaaaaaaaaaaaaaaaaa')
+		user_name = self.info['user_name']
+		user_region = self.info['user_region']
+		msg = Message(self.window, text=f'{user_name}[{user_region}]')
 		msg.pack()
 
 
@@ -40,7 +48,7 @@ def setup_basic_interface():
 	global window
 	window = Tk()
 	window.title('Warframe Market Tracker')
-	window.geometry('600x450')
+	window.geometry('600x800')
 
 
 	lbl = Label(window, text="Enter Item Id:").grid(column=0, row=0)
