@@ -60,12 +60,15 @@ async def fetch_order_sell_price(session, item_name):
 	if len(prices) > 0:
 		pos = np.argmin(prices)
 		price = prices[pos]
+		return {'price' : price,
+			'customer' : {'name' : orders[pos]['user']['ingame_name'],
+						  'region': orders[pos]['region']}}
 	else:
 		pos = None
 		price = 0
-	return {'price' : price,
-			'customer' : {'name' : orders[pos]['user']['ingame_name'],
-						  'region': orders[pos]['region']}}
+		return {'price' : 0,
+			'customer' : None }
+
 
 # GETS MAX SELL PRICE
 async def fetch_order_buy_price(session, item_name):

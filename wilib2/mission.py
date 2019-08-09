@@ -26,7 +26,8 @@ async def main():
 	m = Mission('Hydron', 'Sedna')
 	async with aiohttp.ClientSession() as session:
 		await m.load_rotations(session)
-		pprint(m.rotations)
+		for rot in m.rotations:
+			print(rot.type)
 		#print(m)
 
 if __name__ == '__main__':
