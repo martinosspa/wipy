@@ -9,11 +9,11 @@ import threading
 
 _api_base_url = 'https://api.warframe.market/v1/items'
 _drop_url = 'http://drops.warframestat.us'
-
-_relic_tier0 = 0
-_relic_tier1 = 1
-_relic_tier2 = 2
-_relic_tier3 = 3
+global _relic_tier0
+_relic_tier0 = 'Intact'
+_relic_tier1 = 'Exceptional'
+_relic_tier2 = 'Flawless'
+_relic_tier3 = 'Radiant'
 
 
 
@@ -30,7 +30,8 @@ def _filter_order(order):
 	order['user'].pop('reputation_bonus')
 	return order
 
-
+def _encode(str):
+	return str.lower().replace(' ', '_')
 
 def filter_order(orders, _type='sell'):
 	orders = list(map(_filter_order, orders))
@@ -46,7 +47,7 @@ async def fetch_drop_data(session, endpoint):
 	async with session.get(f'{_drop_url}/data/{endpoint}') as resp:
 		r = await resp.json()
 		return r
-
+	
 
 # GETS MIN BUY PRICE
 async def fetch_order_sell_price(session, item_name):
@@ -134,6 +135,19 @@ async def fetch_all_info(session, item_names):
 									for item_name in item_names])
 	return results
 
+
+async def get_average_relic_price(session, era, name, tier=_relic_tier0):
+	resp = await fetch_drop_data(session, f'relics/{era}/{name}.json')
+	resp = resp['rewards'][tier]
+	
+	resp = list(filter(lambda item: not item['itemName'] == 'Forma Blueprint', resp))
+	item_names = [_encode(item['itemName']) for item in resp]
+	chances = [item['chance'] for item in resp]
+	l = await fetch_all_sell_prices(session, item_names)
+	prices = [item['price'] for item in l]
+	return sum(np.multiply(prices, chances)) / len(item_names)
+
+
 async def main():
 	async with aiohttp.ClientSession() as session:
 		# get all items and parse them into url names
@@ -141,11 +155,14 @@ async def main():
 		#all_items = await resp.json()
 		#all_items = all_items['payload']['items']['en']
 		#items = [item['url_name'] for item in all_items]
-		test_item = ['tigris_prime_set']
+		#test_item = ['tigris_prime_set']
 
-		htmls = await fetch_all_orders(session, test_item)
-		for item in htmls:
-			print(item['item_name'])
+		#htmls = await fetch_all_orders(session, test_item)
+		test = await get_average_relic_price(session, 'Neo R2 Relic')
+		print(test)
+
+		#for item in htmls:
+			#print(item['item_name'])
 			
 			#with open('all-items-json/{}.json'.format(item['item_name']), 'w+') as f:
 				#json.dump(item, f)
