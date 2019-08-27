@@ -19,14 +19,11 @@ class Rotation():
 
 	async def load_item_prices(self, session):
 		self.rewards = []
-		pprint(self.r)
 		for item in self.r:
 			if 'Relic' in item['itemName']:
 				self.rewards.append(Relic(item['itemName']))
-
-
-		await asyncio.gather(*[asyncio.create_task(session, item)
-								for item in self.rewards])
+		await asyncio.gather(*[asyncio.create_task(relic.get_average_price(session))
+								for relic in self.rewards])
 
 
 async def main():
@@ -36,7 +33,9 @@ async def main():
 		test = Rotation('Sedna', 'Hydron', 'A')
 		await test.load_items(session)
 		await test.load_item_prices(session)
-		pprint(test.rewards)
+		for r in test.rewards:
+			print(f'{r.era} , {r.name}, {r.average_price}')
+		#pprint(test.rewards)
 
 
 if __name__ == '__main__':
