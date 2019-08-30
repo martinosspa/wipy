@@ -85,11 +85,14 @@ async def fetch_order_sell_price(session, item_name, additional_info=False):
 
 			return price
 	else:
-		pos = None
-		price = 0
+		if additional_info:
+			pos = None
+			price = 0
 
-		return {'price' : 0,
-			'customer' : None }
+			return {'price' : 0,
+				'customer' : None }
+		else:
+			return 0
 
 
 # GETS MAX SELL PRICE

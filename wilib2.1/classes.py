@@ -140,6 +140,7 @@ class Mission():
 		for rotation in self.rotations:
 			await rotation.load_reward_prices(session)
 			for reward in rotation.rewards:
+				# print(reward.sell_price, reward.drop_chance)
 				self.average_price += reward.sell_price * (100/reward.drop_chance)
 
 
@@ -151,9 +152,14 @@ class Mission():
 	def __repr__(self):
 		return f'{self.planet} {self.mission}'
 
+'''
 
+TEST CODE 
 async def main():
 	async with aiohttp.ClientSession() as session:
+		test_mission = Mission('Sedna','Hydron')
+		await test_mission.load_rewards(session)
+		await test_mission.get_average_price(session)
 
 
 		#test_relic = Relic('Neo N3 Relic', relic_tier=wilib2._relic_tier3)
@@ -166,3 +172,5 @@ async def main():
 if __name__ == '__main__':
 	wilib2.enable_dump_mode()
 	asyncio.run(main())
+
+	'''
