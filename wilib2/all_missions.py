@@ -76,6 +76,8 @@ async def get_items():
 		interested_items.remove('octavia_neuroptics_blueprint')
 		results = await wilib2.fetch_all_sell_prices(session, interested_items)
 
+		print(results)
+
 
 if __name__ == '__main__':
 	asyncio.run((get_items()))

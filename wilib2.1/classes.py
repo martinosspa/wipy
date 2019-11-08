@@ -106,7 +106,42 @@ class Mission():
 		self.name = mission_name
 		self.planet = planet_name
 
-	async def load_rewards(self, session):
+	def load_rewards_from_api_file(self, file):
+		info = json.loads(file)
+		self.type = info['gameMode']
+		self.has_rotations = len(info['rewards']) > 1
+		self.rotations = []
+
+		for rotation in info['rewards']:
+			rot = Rotation(rotation, self)
+
+			for reward in info['rewards'][rotation]:
+
+					# append a relic or item object to rewards 
+
+					if 'Relic' in reward['itemName']:
+						r.append(Relic(full_name = reward['itemName'], drop_chance = reward['chance']))
+					elif not 'Endo' in reward['itemName']:
+						name = wilib2._encode(reward['itemName'])
+						r.append(Item(name, drop_chance = reward['chance']))
+					else:
+						# endo case - leave empty
+						pass
+				rot.set_rewards(r)
+				self.rotations.append(rot)
+
+
+
+
+	def dump_mission(self, file):
+		pass
+
+	def load_rewards_from_file(self, file):
+		# TO DO
+		# function loads file generated from dump_mission
+		pass
+
+	async def load_rewards_from_api(self, session):
 		info = await wilib2.fetch_drop_data(session, f'missionRewards/{self.planet}/{self.name}.json')
 		self.type = info['gameMode']
 		rewards = info['rewards']
@@ -152,9 +187,9 @@ class Mission():
 	def __repr__(self):
 		return f'{self.planet} {self.mission}'
 
-'''
 
-TEST CODE 
+
+#TEST CODE 
 async def main():
 	async with aiohttp.ClientSession() as session:
 		test_mission = Mission('Sedna','Hydron')
@@ -173,4 +208,3 @@ if __name__ == '__main__':
 	wilib2.enable_dump_mode()
 	asyncio.run(main())
 
-	'''
