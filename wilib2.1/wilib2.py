@@ -144,9 +144,9 @@ async def fetch_orders(session, item_name):
 			if 'orders' in resp['payload']:
 				global request_counter
 				request_counter += 1
-				
-				with open(f'dump/{item_name}.json', 'w') as f:
-					json.dump(resp['payload']['orders'], f)
+				if DUMP_MODE_ENABLED:
+					with open(f'dump/{item_name}.json', 'w') as f:
+						json.dump(resp['payload']['orders'], f)
 				return {'item_name' : item_name,
 						'orders' : resp['payload']['orders']}
 			else:
@@ -154,17 +154,17 @@ async def fetch_orders(session, item_name):
 		else:
 			return None
 
-async def fetch_all_buy_prices(session, item_names):
+async def fetch_all_buy_prices(session, item_names, additional_info=False):
 	results = await asyncio.gather(*[asyncio.create_task(fetch_order_buy_price(session, item_name))
 									for item_name in item_names])
 	return results
 
-async def fetch_all_sell_prices(session, item_names):
-	results = await asyncio.gather(*[asyncio.create_task(fetch_order_sell_price(session, item_name))
+async def fetch_all_sell_prices(session, item_names, additional_info=False):
+	results = await asyncio.gather(*[asyncio.create_task(fetch_order_sell_price(session, item_name, additional_info=additional_info))
 									for item_name in item_names])
 	return results
 
-async def fetch_all_orders(session, item_names):
+async def fetch_all_orders(session, item_names, additional_info=False):
 	results = await asyncio.gather(*[asyncio.create_task(fetch_orders(session, item_name))
 									for item_name in item_names])
 	return results
@@ -187,7 +187,7 @@ async def get_average_relic_price(session, era, name, tier=_relic_tier0):
 	resp = list(filter(lambda item: not item['itemName'] == 'Forma Blueprint', resp))
 	item_names = [_encode(item['itemName']) for item in resp]
 	chances = [item['chance'] for item in resp]
-	l = await fetch_all_sell_prices(session, item_names)
+	l = await fetch_all_sell_prices(session, item_names, additional_info=True)
 	prices = [item['price'] for item in l]
 	return sum(np.multiply(prices, chances)) / 100
 
@@ -200,7 +200,9 @@ async def main():
 
 	# test area - relic
 	async with aiohttp.ClientSession() as session:
-		test = await get_average_relic_price(session, 'Neo R2 Relic')
+		test = await get_average_relic_price(session,'Neo', 'R2')
+		print(test)
 
 if __name__ == '__main__':
-	asyncio.run(main())
+	loop = asyncio.get_event_loop()
+	loop.run_until_complete(main())
