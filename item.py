@@ -9,7 +9,8 @@ class Item():
 
 
 	async def get_sell_price(self, session):
-		resp = await fetch_order_sell_price(session, self.name)
+		resp = await fetch_order_sell_price(session, self.name, additional_info=True)
+		print(resp)
 		self.price = resp['price']
 		self.customer = resp['customer']['name']
 		self.region = resp['customer']['region']
@@ -30,7 +31,7 @@ async def main():
 		print(item.price)
 
 if __name__ == '__main__':
-	asyncio.run(main())
+	asyncio.get_event_loop().run_until_complete(main())
 
 
 
