@@ -36,7 +36,6 @@ def _filter_order(order):
 	order['user'].pop('id')
 	order['user'].pop('last_seen')
 	order['user'].pop('reputation')
-	order['user'].pop('reputation_bonus')
 	return order
 
 def _encode(str):

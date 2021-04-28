@@ -7,13 +7,15 @@ class Item():
 	def __init__(self, item_name):
 		self.name = item_name
 
+	def get_sell_price(self):
+		asyncio.get_event_loop.run_until_complete()
 
 	async def get_sell_price(self, session):
 		resp = await fetch_order_sell_price(session, self.name, additional_info=True)
 		print(resp)
 		self.price = resp['price']
 		self.customer = resp['customer']['name']
-		self.region = resp['customer']['region']
+		self.customer_region = resp['customer']['region']
 
 	def _parse(self):
 		r = {}
@@ -21,6 +23,7 @@ class Item():
 		r['price'] = self.price
 		r['customer'] = f'{self.customer}[{self.region}]'
 		return r
+
 
 
 async def main():
